@@ -1,0 +1,50 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Sequencer",
+  "sourceName": "contracts/universal/Sequencer.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "MESSENGER",
+      "outputs": [
+        {
+          "internalType": "contract CrossDomainMessenger",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "OTHER_SEQUENCER",
+      "outputs": [
+        {
+          "internalType": "contract Sequencer",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "messenger",
+      "outputs": [
+        {
+          "internalType": "contract CrossDomainMessenger",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
