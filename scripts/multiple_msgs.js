@@ -1,5 +1,5 @@
 const ethers = require("ethers")
-const morphismSDK = require("@morphism-labs/sdk")
+const morphSDK = require("@morph-l2/sdk")
 const { expect } = require("chai")
 
 const L1ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/TestERC20.json")
@@ -63,7 +63,7 @@ const sendEther = async () => {
 
 const setup = async () => {
     const [l1Signer, l2Signer] = await getSigners()
-    crossChainMessenger = new morphismSDK.CrossChainMessenger({
+    crossChainMessenger = new morphSDK.CrossChainMessenger({
         l1ChainId: 900,
         l2ChainId: 53077,
         l1SignerOrProvider: l1Signer,
@@ -147,7 +147,7 @@ const depositETH = async () => {
     console.log("Waiting for status to change to RELAYED")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(response.hash,
-        morphismSDK.MessageStatus.RELAYED)
+        morphSDK.MessageStatus.RELAYED)
     console.log("finalize deposit at l2 height :", await l2RpcProvider.getBlockNumber())
     await reportETHBalances()
     console.log(`depositETH took ${(new Date() - start) / 1000} seconds\n\n`)

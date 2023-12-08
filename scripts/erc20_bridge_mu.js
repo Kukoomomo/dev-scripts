@@ -14,9 +14,11 @@ let crossChainMessenger
 
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
-const L1ERC20Addr = '0x0FaC7629f6B063733CE9A9d7c3917C9A8FFF67bc'
-const L2ERC20Addr = '0x0FaC7629f6B063733CE9A9d7c3917C9A8FFF67bc'
-let l1ERC20, l2ERC20    // OUTb contracts to show ERC-20 transfers
+const L1ERC20Addr = '0x2D8933b2CD2cDb529B64d0dCbE5dF117709bd793'
+const L2ERC20Addr = '0x36FaCd633033613a8120e19286d6132f99A14dB4'
+const L2ERC20SAddr = '0x2D0cAb54259794b9E6CBd9F29D72d8F931609AFe'
+
+let l1ERC20, l2ERC20, l2ERC20S   // OUTb contracts to show ERC-20 transfers
 let ourAddr             // The address of the signer we use.  
 const dou = BigInt(2)
 const oneToken = BigInt(1e18)
@@ -36,11 +38,9 @@ const deployERC20 = async () => {
     ).connect(l1Wallet)
     if (L1ERC20Addr == '') {
         l1ERC20 = await l1ERC20Factory.deploy('L1Token', 'l1token')
-    }else{
+    } else {
         l1ERC20 = l1ERC20Factory.attach(L1ERC20Addr)
     }
-    let res = await l1ERC20.mint(l1Wallet.address, dou * oneToken)
-    await res.wait()
 
     const l2ERC20Factory = new ethers.ContractFactory(
         L2ERC20Artifacts.abi,
@@ -48,12 +48,17 @@ const deployERC20 = async () => {
     ).connect(l2Wallet)
     if (L2ERC20Addr == '') {
         l2ERC20 = await l2ERC20Factory.deploy(L2BridgeAddress, l1ERC20.address, "L2Token", "l2token")
-    }else{
+    } else {
         l2ERC20 = l2ERC20Factory.attach(L2ERC20Addr)
     }
-    console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}`)
-}
 
+    if (L2ERC20SAddr == '') {
+        l2ERC20S = await l2ERC20Factory.deploy(L2BridgeAddress, l1ERC20.address, "L2TokenS", "l2tokenS")
+    } else {
+        l2ERC20S = l2ERC20Factory.attach(L2ERC20SAddr)
+    }
+    console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}, L2S ${l2ERC20S.address}`)
+}
 
 const sendEther = async () => {
     console.log("send ether to 0xF1D598fD5f8367be41b0761696e643aC092b313E")
@@ -100,17 +105,26 @@ const reportERC20Balances = async () => {
     console.log(`Token on L1 balances:${l1Balance}     Token on L2 balances:${l2Balance}`)
 }
 
+const l1ERC20MintToken = async () => {
+    let [l1Wallet, l2Wallet] = await getSigners()
+    let res = await l1ERC20.mint(l1Wallet.address, oneToken)
+    await res.wait()
+}
+
 const lockERC20ToL1SB = async () => {
+    await l1ERC20MintToken()
     console.log("Lock ERC20")
 
     let [l1Wallet, l2Wallet] = await getSigners()
     const l1SBAddr = crossChainMessenger.contracts.l1.L1StandardBridge.address
-    const res = await l1ERC20.connect(l1Wallet).transfer(l1SBAddr, oneToken)
+    res = await l1ERC20.connect(l1Wallet).transfer(l1SBAddr, oneToken)
     await res.wait()
     await reportERC20Balances()
 }
 
 const depositERC20 = async () => {
+    await l1ERC20MintToken()
+
     console.log("Deposit ERC20")
     await reportERC20Balances()
     const start = new Date()
@@ -124,6 +138,34 @@ const depositERC20 = async () => {
 
     const response = await crossChainMessenger.depositERC20(
         l1ERC20.address, l2ERC20.address, oneToken)
+    console.log(`Deposit transaction hash (on L1): ${response.hash}`)
+    await response.wait()
+
+    console.log("Waiting for status to change to RELAYED")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.waitForMessageStatus(response.hash,
+        morphSDK.MessageStatus.RELAYED)
+
+    await reportERC20Balances()
+    console.log(`depositERC20 took ${(new Date() - start) / 1000} seconds\n\n`)
+}
+
+const depositERC20S = async () => {
+    await l1ERC20MintToken()
+
+    console.log("Deposit ERC20S")
+    await reportERC20Balances()
+    const start = new Date()
+
+    // Need the l2 address to know which bridge is responsible
+    const allowanceResponse = await crossChainMessenger.approveERC20(
+        l1ERC20.address, l2ERC20S.address, oneToken)
+    await allowanceResponse.wait()
+    console.log(`Allowance given by tx ${allowanceResponse.hash}`)
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+
+    const response = await crossChainMessenger.depositERC20(
+        l1ERC20.address, l2ERC20S.address, oneToken)
     console.log(`Deposit transaction hash (on L1): ${response.hash}`)
     await response.wait()
 
@@ -171,12 +213,52 @@ const withdrawERC20 = async () => {
     console.log(`withdrawERC20 took ${(new Date() - start) / 1000} seconds\n\n\n`)
 }
 
+const withdrawERC20S = async () => {
+    console.log("Withdraw ERC20")
+    const start = new Date()
+    await reportERC20Balances()
+
+    const response = await crossChainMessenger.withdrawERC20(
+        l1ERC20.address, l2ERC20.address, oneToken)
+    console.log('withdraw in L2 height', await l2RpcProvider.getBlockNumber())
+    console.log(`Transaction hash (on L2): ${response.hash}`)
+    await response.wait()
+
+    console.log("Waiting for status to be READY_TO_PROVE")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.waitForMessageStatus(response.hash,
+        morphSDK.MessageStatus.READY_TO_PROVE)
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.proveMessage(response.hash)
+
+    console.log("In the challenge period, waiting for status READY_FOR_RELAY")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.waitForMessageStatus(response.hash,
+        morphSDK.MessageStatus.READY_FOR_RELAY)
+    console.log("Ready for relay, finalizing message now")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+
+    await crossChainMessenger.finalizeMessage(response.hash)
+
+    console.log("Waiting for status to change to RELAYED")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.waitForMessageStatus(response,
+        morphSDK.MessageStatus.RELAYED)
+    await reportERC20Balances()
+    console.log(`withdrawERC20 took ${(new Date() - start) / 1000} seconds\n\n\n`)
+}
+
 const main = async () => {
     await sendEther()
     await setup()
-    // await lockERC20ToL1SB()
-    await depositERC20()
-    // await withdrawERC20()
+    await lockERC20ToL1SB()
+    for(var i =0;i<100;i++){
+        await depositERC20()
+        await depositERC20S()
+        await withdrawERC20()
+        await withdrawERC20S()
+    }
+
 }
 
 main().then(() => process.exit(0))

@@ -1,8 +1,9 @@
 const ethers = require("ethers")
 const morphSDK = require("@morph-l2/sdk")
 
-const L1ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/TestERC20.json")
-const L2ERC20Artifacts = require("../artifacts/contracts/universal/MorphismMintableERC20.sol/MorphismMintableERC20.json")
+const L2ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/TestERC20.json")
+const L1ERC20Artifacts = require("../artifacts/contracts/universal/MorphismMintableERC20.sol/MorphismMintableERC20.json")
+const L2StrandBridgeArtifacts = require("../artifacts/contracts/L2/L2StandardBridge.sol/L2StandardBridge.json")
 
 const L2BridgeAddress = '0x4200000000000000000000000000000000000010'
 const l1Url = `http://localhost:9545`
@@ -14,8 +15,10 @@ let crossChainMessenger
 
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
-const L1ERC20Addr = '0x0FaC7629f6B063733CE9A9d7c3917C9A8FFF67bc'
-const L2ERC20Addr = '0x0FaC7629f6B063733CE9A9d7c3917C9A8FFF67bc'
+const L1ERC20Addr = ''
+const L2ERC20Addr = ''
+
+let l2StrandBridge
 let l1ERC20, l2ERC20    // OUTb contracts to show ERC-20 transfers
 let ourAddr             // The address of the signer we use.  
 const dou = BigInt(2)
@@ -30,27 +33,39 @@ const getSigners = async () => {
 
 const deployERC20 = async () => {
     let [l1Wallet, l2Wallet] = await getSigners()
-    const l1ERC20Factory = new ethers.ContractFactory(
-        L1ERC20Artifacts.abi,
-        L1ERC20Artifacts.bytecode,
-    ).connect(l1Wallet)
-    if (L1ERC20Addr == '') {
-        l1ERC20 = await l1ERC20Factory.deploy('L1Token', 'l1token')
-    }else{
-        l1ERC20 = l1ERC20Factory.attach(L1ERC20Addr)
-    }
-    let res = await l1ERC20.mint(l1Wallet.address, dou * oneToken)
-    await res.wait()
+    let L1BridgeAddr = crossChainMessenger.contracts.l1.L1StandardBridge.address
+    console.log("L1BridgeAddr:", L1BridgeAddr)
+    let L2BridgeAddr = crossChainMessenger.contracts.l2.L2StandardBridge.address
+    console.log("L2BridgeAddr:", L2BridgeAddr)
+
+    const l2StrandBridgeFactory = new ethers.ContractFactory(
+        L2StrandBridgeArtifacts.abi,
+        L2StrandBridgeArtifacts.bytecode,
+    ).connect(l2Wallet)
+    l2StrandBridge = l2StrandBridgeFactory.attach(L2BridgeAddr)
 
     const l2ERC20Factory = new ethers.ContractFactory(
         L2ERC20Artifacts.abi,
         L2ERC20Artifacts.bytecode,
     ).connect(l2Wallet)
     if (L2ERC20Addr == '') {
-        l2ERC20 = await l2ERC20Factory.deploy(L2BridgeAddress, l1ERC20.address, "L2Token", "l2token")
-    }else{
+        l2ERC20 = await l2ERC20Factory.deploy("L2Token", "l2token")
+    } else {
         l2ERC20 = l2ERC20Factory.attach(L2ERC20Addr)
     }
+    let res = await l2ERC20.mint(l2Wallet.address, dou * oneToken)
+    await res.wait()
+
+    const l1ERC20Factory = new ethers.ContractFactory(
+        L1ERC20Artifacts.abi,
+        L1ERC20Artifacts.bytecode,
+    ).connect(l1Wallet)
+    if (L1ERC20Addr == '') {
+        l1ERC20 = await l1ERC20Factory.deploy(L1BridgeAddr, l2ERC20.address, 'L1Token', 'l1token')
+    } else {
+        l1ERC20 = l1ERC20Factory.attach(L1ERC20Addr)
+    }
+
     console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}`)
 }
 
@@ -100,40 +115,39 @@ const reportERC20Balances = async () => {
     console.log(`Token on L1 balances:${l1Balance}     Token on L2 balances:${l2Balance}`)
 }
 
-const lockERC20ToL1SB = async () => {
-    console.log("Lock ERC20")
-
-    let [l1Wallet, l2Wallet] = await getSigners()
-    const l1SBAddr = crossChainMessenger.contracts.l1.L1StandardBridge.address
-    const res = await l1ERC20.connect(l1Wallet).transfer(l1SBAddr, oneToken)
-    await res.wait()
-    await reportERC20Balances()
-}
-
-const depositERC20 = async () => {
+const bridgeToL1 = async () => {
     console.log("Deposit ERC20")
     await reportERC20Balances()
     const start = new Date()
+    let response = await l2ERC20.approve(l2StrandBridge.address, oneToken)
+    await response.wait()
+    console.log(`Approve ERC20 to Bridge success`)
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+
+    response = await l2StrandBridge.bridgeERC20(l2ERC20.address, l1ERC20.address, oneToken, 0, '0x')
+    console.log(`Transaction hash (on L2): ${response.hash}`)
+    await response.wait()
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await reportERC20Balances()
 
     // Need the l2 address to know which bridge is responsible
-    const allowanceResponse = await crossChainMessenger.approveERC20(
-        l1ERC20.address, l2ERC20.address, oneToken)
-    await allowanceResponse.wait()
-    console.log(`Allowance given by tx ${allowanceResponse.hash}`)
-    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    // const allowanceResponse = await crossChainMessenger.approveERC20(
+    //     l1ERC20.address, l2ERC20.address, oneToken)
+    // await allowanceResponse.wait()
+    // console.log(`Allowance given by tx ${allowanceResponse.hash}`)
 
-    const response = await crossChainMessenger.depositERC20(
-        l1ERC20.address, l2ERC20.address, oneToken)
-    console.log(`Deposit transaction hash (on L1): ${response.hash}`)
-    await response.wait()
+    // const response = await crossChainMessenger.depositERC20(
+    //     l1ERC20.address, l2ERC20.address, oneToken)
+    // console.log(`Deposit transaction hash (on L1): ${response.hash}`)
+    // await response.wait()
 
-    console.log("Waiting for status to change to RELAYED")
-    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
-    await crossChainMessenger.waitForMessageStatus(response.hash,
-        morphSDK.MessageStatus.RELAYED)
+    // console.log("Waiting for status to change to RELAYED")
+    // console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    // await crossChainMessenger.waitForMessageStatus(response.hash,
+    //     morphSDK.MessageStatus.RELAYED)
 
-    await reportERC20Balances()
-    console.log(`depositERC20 took ${(new Date() - start) / 1000} seconds\n\n`)
+    // await reportERC20Balances()
+    // console.log(`depositERC20 took ${(new Date() - start) / 1000} seconds\n\n`)
 }
 
 const withdrawERC20 = async () => {
@@ -174,8 +188,7 @@ const withdrawERC20 = async () => {
 const main = async () => {
     await sendEther()
     await setup()
-    // await lockERC20ToL1SB()
-    await depositERC20()
+    await bridgeToL1()
     // await withdrawERC20()
 }
 

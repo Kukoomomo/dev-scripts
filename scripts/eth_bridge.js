@@ -1,5 +1,5 @@
 const ethers = require("ethers")
-const morphismSDK = require("@morphism-labs/sdk")
+const morphSDK = require("@morph-l2/sdk")
 const { expect } = require("chai")
 const l1Url = `http://localhost:9545`
 const l2Url = `http://localhost:8545`
@@ -40,7 +40,7 @@ const sendEther = async () => {
 const setup = async () => {
     const [l1Signer, l2Signer] = await getSigners()
     addr = l1Signer.address
-    crossChainMessenger = new morphismSDK.CrossChainMessenger({
+    crossChainMessenger = new morphSDK.CrossChainMessenger({
         l1ChainId: 900,
         l2ChainId: 53077,
         l1SignerOrProvider: l1Signer,
@@ -66,7 +66,7 @@ const depositETH = async () => {
     console.log("Waiting for status to change to RELAYED")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(response.hash,
-        morphismSDK.MessageStatus.RELAYED)
+        morphSDK.MessageStatus.RELAYED)
 
     await reportBalances()
     console.log(`depositETH took ${(new Date() - start) / 1000} seconds\n\n`)
@@ -77,9 +77,6 @@ const withdrawETH = async () => {
     const start = new Date()
     await reportBalances()
 
-    let balance = await l2RpcProvider.getBalance("0xe08fd3aCcA5A467e9E704c703e8D87F634Fb20da")
-    console.log("balances before ",balance.toString())
-
     let response = await crossChainMessenger.withdrawETH(eth)
     console.log(`Transaction hash (on L2): ${response.hash}`)
     let receipt = await response.wait()
@@ -87,13 +84,10 @@ const withdrawETH = async () => {
     expect(receipt.status.toString()).to.eq('1')
     await reportBalances()
 
-     balance = await l2RpcProvider.getBalance("0xe08fd3aCcA5A467e9E704c703e8D87F634Fb20da")
-    console.log("balances after ",balance.toString())
-
     console.log("Waiting for status to be READY_TO_PROVE")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(response.hash,
-        morphismSDK.MessageStatus.READY_TO_PROVE)
+        morphSDK.MessageStatus.READY_TO_PROVE)
     const syncIndex = await crossChainMessenger.getBackendTreeSyncIndex()
     console.log("sync index : ", syncIndex)
 
@@ -103,7 +97,7 @@ const withdrawETH = async () => {
     console.log("In the challenge period, waiting for status READY_FOR_RELAY")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(response.hash,
-        morphismSDK.MessageStatus.READY_FOR_RELAY)
+        morphSDK.MessageStatus.READY_FOR_RELAY)
     console.log("Ready for relay, finalizing message now")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.finalizeMessage(response.hash)
@@ -111,7 +105,7 @@ const withdrawETH = async () => {
     console.log("Waiting for status to change to RELAYED")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(response.hash,
-        morphismSDK.MessageStatus.RELAYED)
+        morphSDK.MessageStatus.RELAYED)
 
     await reportBalances()
     console.log(`withdrawETH took ${(new Date() - start) / 1000} seconds\n\n\n`)

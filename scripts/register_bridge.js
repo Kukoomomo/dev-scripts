@@ -1,6 +1,6 @@
 const ethers = require("ethers")
 const { expect } = require("chai")
-const morphismSDK = require("@morphism-labs/sdk")
+const morphSDK = require("@morph-l2/sdk")
 
 const l1Url = `http://localhost:9545`
 const l2Url = `http://localhost:8545`
@@ -118,7 +118,7 @@ const setupWallets = async () => {
 }
 
 const setupSDK = async () => {
-    crossChainMessenger = new morphismSDK.CrossChainMessenger({
+    crossChainMessenger = new morphSDK.CrossChainMessenger({
         l1ChainId: 900,
         l2ChainId: 53077,
         l1SignerOrProvider: l1Signer,
@@ -165,7 +165,7 @@ const register = async () => {
     }
     await checkL1SequencerInfo()
     console.log("Waiting for status to change to RELAYED")
-    await crossChainMessenger.waitForMessageStatus(crossChainHash, morphismSDK.MessageStatus.RELAYED)
+    await crossChainMessenger.waitForMessageStatus(crossChainHash, morphSDK.MessageStatus.RELAYED)
 }
 
 const stakingMore = async () => {
@@ -196,7 +196,7 @@ const stakingMore = async () => {
     expect(tmKey).to.eq(sequencerInfo.tmKey)
 
     console.log("Waiting for status to change to RELAYED")
-    await crossChainMessenger.waitForMessageStatus(crossChainHash, morphismSDK.MessageStatus.RELAYED)
+    await crossChainMessenger.waitForMessageStatus(crossChainHash, morphSDK.MessageStatus.RELAYED)
 }
 
 const checkL1SequencerInfo = async () => {

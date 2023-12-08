@@ -7,9 +7,9 @@
     "clean": "rm -rf ./dist ./cache ./node_modules ./typechain-types ./logs ./tsconfig.tsbuildinfo"
   },
   "devDependencies": {
-    "@morphism-labs/sdk": "0.0.7",
+    "@morph-l2/core-utils": "0.0.1",
+    "@morph-l2/sdk": "0.0.3",
     "@nomiclabs/hardhat-ethers": "^2.2.1",
-    "@morphism-labs/core-utils": "0.0.1",
     "ethers": "^5.7.2",
     "@types/chai": "^4.3.1",
     "chai": "^4.3.6",
