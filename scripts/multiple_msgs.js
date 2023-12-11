@@ -1,6 +1,7 @@
 const ethers = require("ethers")
 const morphSDK = require("@morph-l2/sdk")
 const { expect } = require("chai")
+const axios = require("axios")
 
 const L1ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/TestERC20.json")
 const L2ERC20Artifacts = require("../artifacts/contracts/universal/MorphismMintableERC20.sol/MorphismMintableERC20.json")
@@ -92,6 +93,21 @@ const deployERC20s = async () => {
         l1ERC20s.push(l1ERC20)
         l2ERC20s.push(l2ERC20)
         console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}`)
+        const l1Address = l1ERC20.address
+        const l2Address = l2ERC20.address
+        const addTokenPairUrl = `http://localhost:8080/addToList?l1Address=${l1Address}&l2Address=${l2Address}`;
+        axios.get(addTokenPairUrl, {
+            params: {
+                l1Address: l1Address,
+                l2Address: l2Address
+            }
+        })
+            .then(response => {
+                console.log("add to token list success")
+            })
+            .catch(error => {
+                console.log(error);
+            });
     }
 }
 
@@ -183,7 +199,7 @@ const multipleDeposit = async () => {
         }
     )
     let rec = await response.wait()
-    console.log("withdraw at l2 height:",rec.blockNumber)
+    console.log("withdraw at l2 height:", rec.blockNumber)
     console.log("Waiting for status to change to RELAYED")
 
     await reportERC20Balances()

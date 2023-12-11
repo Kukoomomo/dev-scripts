@@ -1,5 +1,6 @@
 const ethers = require("ethers")
 const morphSDK = require("@morph-l2/sdk")
+const axios = require("axios")
 
 const L1ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/TestERC20.json")
 const L2ERC20Artifacts = require("../artifacts/contracts/universal/MorphismMintableERC20.sol/MorphismMintableERC20.json")
@@ -14,9 +15,9 @@ let crossChainMessenger
 
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
-const L1ERC20Addr = '0x2D8933b2CD2cDb529B64d0dCbE5dF117709bd793'
-const L2ERC20Addr = '0x36FaCd633033613a8120e19286d6132f99A14dB4'
-const L2ERC20SAddr = '0x2D0cAb54259794b9E6CBd9F29D72d8F931609AFe'
+const L1ERC20Addr = ''
+const L2ERC20Addr = ''
+const L2ERC20SAddr = ''
 
 let l1ERC20, l2ERC20, l2ERC20S   // OUTb contracts to show ERC-20 transfers
 let ourAddr             // The address of the signer we use.  
@@ -58,6 +59,22 @@ const deployERC20 = async () => {
         l2ERC20S = l2ERC20Factory.attach(L2ERC20SAddr)
     }
     console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}, L2S ${l2ERC20S.address}`)
+    const l1Address = l1ERC20.address
+    const l2Address = l2ERC20.address
+
+    let addTokenPairUrl = `http://localhost:8080/addToList?l1Address=${l1Address}&l2Address=${l2Address}`;
+    axios.get(addTokenPairUrl, {
+        params: {
+            l1Address: l1Address,
+            l2Address: l2Address
+        }
+    })
+        .then(response => {
+            console.log("add to token list success")
+        })
+        .catch(error => {
+            console.log(error);
+        });
 }
 
 const sendEther = async () => {
@@ -252,7 +269,7 @@ const main = async () => {
     await sendEther()
     await setup()
     await lockERC20ToL1SB()
-    for(var i =0;i<100;i++){
+    for (var i = 0; i < 100; i++) {
         await depositERC20()
         await depositERC20S()
         await withdrawERC20()

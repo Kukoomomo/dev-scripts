@@ -1,8 +1,8 @@
 const ethers = require("ethers")
 const morphSDK = require("@morph-l2/sdk")
 const { expect } = require("chai")
-const l1Url = `http://10.11.56.77:9545`
-const l2Url = `http://10.11.56.77:8545`
+const l1Url = `http://localhost:9545`
+const l2Url = `http://localhost:8545`
 
 const l1RpcProvider = new ethers.providers.JsonRpcProvider(l1Url)
 const l2RpcProvider = new ethers.providers.JsonRpcProvider(l2Url)
@@ -46,7 +46,6 @@ const setup = async () => {
         l2ChainId: 53077,
         l1SignerOrProvider: l1Signer,
         l2SignerOrProvider: l2Signer,
-        backendURL: "http://10.11.56.77:8080",
     })
 }
 
@@ -157,10 +156,8 @@ const withdrawETHByHash = async (hash) => {
 const main = async () => {
     await sendEther()
     await setup()
-    // await depositETH()
-    // await withdrawETH()
-    const hash = "0x93aaefcb702e1ec6fede2b3b6569fd130cb15c361fe1738ac97322da8319f505"
-    await withdrawETHByHash(hash)
+    await depositETH()
+    await withdrawETH()
 }
 
 main().then(() => process.exit(0))

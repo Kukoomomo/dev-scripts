@@ -1,5 +1,6 @@
 const ethers = require("ethers")
 const morphSDK = require("@morph-l2/sdk")
+const axios = require("axios")
 
 const L2ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/TestERC20.json")
 const L1ERC20Artifacts = require("../artifacts/contracts/universal/MorphismMintableERC20.sol/MorphismMintableERC20.json")
@@ -67,6 +68,22 @@ const deployERC20 = async () => {
     }
 
     console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}`)
+    const l1Address = l1ERC20.address
+    const l2Address = l2ERC20.address
+
+    let addTokenPairUrl = `http://localhost:8080/addToList?l1Address=${l1Address}&l2Address=${l2Address}`;
+    axios.get(addTokenPairUrl, {
+        params: {
+            l1Address: l1Address,
+            l2Address: l2Address
+        }
+    })
+        .then(response => {
+            console.log("add to token list success")
+        })
+        .catch(error => {
+            console.log(error);
+        });
 }
 
 
@@ -130,24 +147,28 @@ const bridgeToL1 = async () => {
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await reportERC20Balances()
 
-    // Need the l2 address to know which bridge is responsible
-    // const allowanceResponse = await crossChainMessenger.approveERC20(
-    //     l1ERC20.address, l2ERC20.address, oneToken)
-    // await allowanceResponse.wait()
-    // console.log(`Allowance given by tx ${allowanceResponse.hash}`)
+    console.log("Waiting for status to be READY_TO_PROVE")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.waitForMessageStatus(response.hash,
+        morphSDK.MessageStatus.READY_TO_PROVE)
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.proveMessage(response.hash)
 
-    // const response = await crossChainMessenger.depositERC20(
-    //     l1ERC20.address, l2ERC20.address, oneToken)
-    // console.log(`Deposit transaction hash (on L1): ${response.hash}`)
-    // await response.wait()
+    console.log("In the challenge period, waiting for status READY_FOR_RELAY")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.waitForMessageStatus(response.hash,
+        morphSDK.MessageStatus.READY_FOR_RELAY)
+    console.log("Ready for relay, finalizing message now")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
 
-    // console.log("Waiting for status to change to RELAYED")
-    // console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
-    // await crossChainMessenger.waitForMessageStatus(response.hash,
-    //     morphSDK.MessageStatus.RELAYED)
+    await crossChainMessenger.finalizeMessage(response.hash)
 
-    // await reportERC20Balances()
-    // console.log(`depositERC20 took ${(new Date() - start) / 1000} seconds\n\n`)
+    console.log("Waiting for status to change to RELAYED")
+    console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
+    await crossChainMessenger.waitForMessageStatus(response,
+        morphSDK.MessageStatus.RELAYED)
+    await reportERC20Balances()
+    console.log(`withdrawERC20 took ${(new Date() - start) / 1000} seconds\n\n\n`)
 }
 
 const withdrawERC20 = async () => {

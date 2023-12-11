@@ -1,5 +1,6 @@
 const ethers = require("ethers")
 const morphSDK = require("@morph-l2/sdk")
+const axios = require("axios")
 
 const L1ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/TestERC20.json")
 const L2ERC20Artifacts = require("../artifacts/contracts/universal/MorphismMintableERC20.sol/MorphismMintableERC20.json")
@@ -14,8 +15,8 @@ let crossChainMessenger
 
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
-const L1ERC20Addr = '0x0FaC7629f6B063733CE9A9d7c3917C9A8FFF67bc'
-const L2ERC20Addr = '0x0FaC7629f6B063733CE9A9d7c3917C9A8FFF67bc'
+const L1ERC20Addr = ''
+const L2ERC20Addr = ''
 let l1ERC20, l2ERC20    // OUTb contracts to show ERC-20 transfers
 let ourAddr             // The address of the signer we use.  
 const dou = BigInt(2)
@@ -36,7 +37,7 @@ const deployERC20 = async () => {
     ).connect(l1Wallet)
     if (L1ERC20Addr == '') {
         l1ERC20 = await l1ERC20Factory.deploy('L1Token', 'l1token')
-    }else{
+    } else {
         l1ERC20 = l1ERC20Factory.attach(L1ERC20Addr)
     }
     let res = await l1ERC20.mint(l1Wallet.address, dou * oneToken)
@@ -48,10 +49,27 @@ const deployERC20 = async () => {
     ).connect(l2Wallet)
     if (L2ERC20Addr == '') {
         l2ERC20 = await l2ERC20Factory.deploy(L2BridgeAddress, l1ERC20.address, "L2Token", "l2token")
-    }else{
+    } else {
         l2ERC20 = l2ERC20Factory.attach(L2ERC20Addr)
     }
     console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}`)
+
+    const l1Address = l1ERC20.address
+    const l2Address = l2ERC20.address
+
+    const addTokenPairUrl = `http://localhost:8080/addToList?l1Address=${l1Address}&l2Address=${l2Address}`;
+    axios.get(addTokenPairUrl, {
+        params: {
+            l1Address: l1Address,
+            l2Address: l2Address
+        }
+    })
+        .then(response => {
+            console.log("add to token list success")
+        })
+        .catch(error => {
+            console.log(error);
+        });
 }
 
 
@@ -176,7 +194,7 @@ const main = async () => {
     await setup()
     // await lockERC20ToL1SB()
     await depositERC20()
-    // await withdrawERC20()
+    await withdrawERC20()
 }
 
 main().then(() => process.exit(0))
