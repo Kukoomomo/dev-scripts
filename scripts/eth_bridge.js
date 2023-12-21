@@ -1,5 +1,6 @@
 const ethers = require("ethers")
 const morphSDK = require("@morph-l2/sdk")
+
 const { expect } = require("chai")
 const l1Url = `http://localhost:9545`
 const l2Url = `http://localhost:8545`
@@ -112,6 +113,49 @@ const withdrawETH = async () => {
     console.log(`withdrawETH took ${(new Date() - start) / 1000} seconds\n\n\n`)
 }
 
+const finalizeBatchs = async () => {
+
+    const res = await crossChainMessenger.contracts.l1.Rollup.finalizeBatchs()
+    await res.wait()
+    let lastCommittedBatchIndex = await crossChainMessenger.contracts.l1.Rollup.lastCommittedBatchIndex()
+    let lastFinalizedBatchIndex = await crossChainMessenger.contracts.l1.Rollup.lastFinalizedBatchIndex()
+    console.log("lastCommittedBatchIndex", lastCommittedBatchIndex.toNumber())
+    console.log("lastFinalizedBatchIndex", lastFinalizedBatchIndex.toNumber())
+}
+
+const msgStatusCheck = async (hash) => {
+    const resolved = await crossChainMessenger.toCrossChainMessage(hash)
+    const withdrawal = await crossChainMessenger.toLowLevelMessage(resolved)
+    const provenWithdrawal =
+        await crossChainMessenger.contracts.l1.MorphPortal.provenWithdrawals(
+            morphSDK.hashLowLevelMessage(withdrawal)
+        )
+
+    // check rollup confirm batch
+    const withdrawalRootBatchIndex =
+        await crossChainMessenger.contracts.l1.Rollup.withdrawalRoots(
+            provenWithdrawal.withdrawalRoot
+        )
+    let lastFinalizedBatchIndex = await crossChainMessenger.contracts.l1.Rollup.lastFinalizedBatchIndex()
+    const latestBlock = await crossChainMessenger.l1Provider.getBlock('latest')
+    const finalizePeriod =
+        await crossChainMessenger.contracts.l1.Rollup.FINALIZATION_PERIOD_SECONDS()
+    if (
+        withdrawalRootBatchIndex.gt(lastFinalizedBatchIndex) ||
+        latestBlock.timestamp <
+        provenWithdrawal.timestamp.toNumber() + finalizePeriod.toNumber()
+    ) {
+        console.log("in challenge period")
+    } else {
+        console.log("out challenge period")
+    }
+
+    console.log("withdrawal in batch ", withdrawalRootBatchIndex.toNumber())
+    await finalizeBatchs()
+    const status = await crossChainMessenger.getMessageStatus(hash)
+    console.log("status", status)
+}
+
 const withdrawETHByHash = async (hash) => {
     console.log("Withdraw ETH,hash:", hash)
     const start = new Date()
@@ -128,7 +172,7 @@ const withdrawETHByHash = async (hash) => {
     console.log("Waiting for status to be READY_TO_PROVE")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(hash,
-        morphismSDK.MessageStatus.READY_TO_PROVE)
+        morphSDK.MessageStatus.READY_TO_PROVE)
     const syncIndex = await crossChainMessenger.getBackendTreeSyncIndex()
     console.log("sync index : ", syncIndex)
 
@@ -138,7 +182,7 @@ const withdrawETHByHash = async (hash) => {
     console.log("Waiting for status READY_FOR_RELAY")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(hash,
-        morphismSDK.MessageStatus.READY_FOR_RELAY)
+        morphSDK.MessageStatus.READY_FOR_RELAY)
     console.log("Ready for relay, finalizing message now")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.finalizeMessage(hash)
@@ -146,7 +190,7 @@ const withdrawETHByHash = async (hash) => {
     console.log("Waiting for status to change to RELAYED")
     console.log(`Time so far ${(new Date() - start) / 1000} seconds`)
     await crossChainMessenger.waitForMessageStatus(hash,
-        morphismSDK.MessageStatus.RELAYED)
+        morphSDK.MessageStatus.RELAYED)
 
     await reportBalances()
     console.log(`withdrawETH took ${(new Date() - start) / 1000} seconds\n\n\n`)
@@ -158,6 +202,9 @@ const main = async () => {
     await setup()
     await depositETH()
     await withdrawETH()
+
+    // await withdrawETHByHash('')
+    // await msgStatusCheck('')
 }
 
 main().then(() => process.exit(0))

@@ -199,7 +199,7 @@ const multipleDeposit = async () => {
         }
     )
     let rec = await response.wait()
-    console.log("withdraw at l2 height:", rec.blockNumber)
+    console.log("deposit at l1 height:", rec.blockNumber)
     console.log("Waiting for status to change to RELAYED")
 
     await reportERC20Balances()
