@@ -1,14 +1,8 @@
 const axios = require('axios');
 
-const proofApiUrl = 'http://localhost:8080/getProof';
-const indexApiUrl = 'http://localhost:8080/getIndex';
-const index = 0;
-
-var l1Address = '0x79E41C81506a34a5962b10825171132E566476D5'
-var l2Address = '0x59A16201e6b175Da0f4C71F7EbCd265cbD50a58a'
-
-var addTokenPairUrl = `http://localhost:8080/addToList?l1Address=${l1Address}&l2Address=${l2Address}`;
-
+const proofApiUrl = 'http://localhost:8000/getProof';
+const indexApiUrl = 'http://localhost:8000/getL2SyncHeight';
+const index = 1;
 
 axios.get(proofApiUrl, {
     params: {
@@ -16,6 +10,7 @@ axios.get(proofApiUrl, {
     }
 })
     .then(response => {
+        console.log(response.data)
         console.log('leaf', response.data.leaf);
         let str = ''
         for (var i in response.data.proof) {  //遍历数组
@@ -35,17 +30,4 @@ axios.get(indexApiUrl, {})
     })
     .catch(error => {
         console.error(error);
-    });
-
-axios.get(addTokenPairUrl, {
-    params: {
-        l1Address: l1Address,
-        l2Address: l2Address
-    }
-})
-    .then(response => {
-        console.log(response.data)
-    })
-    .catch(error => {
-        console.log(error);
     });

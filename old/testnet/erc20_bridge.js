@@ -6,17 +6,18 @@ const L1ERC20Artifacts = require("../artifacts/contracts/MockTest/TestERC20.sol/
 const L2ERC20Artifacts = require("../artifacts/contracts/universal/MorphismMintableERC20.sol/MorphismMintableERC20.json")
 
 const L2BridgeAddress = '0x4200000000000000000000000000000000000010'
-const l1Url = `http://localhost:9545`
-const l2Url = `http://localhost:8545`
+const l1Url = `https://sepolia.infura.io/v3/0747039294284c25904babb5a68e4bb5`
+const l2Url = `https://rpc-testnet.morphl2.io`
 
 const l1RpcProvider = new ethers.providers.JsonRpcProvider(l1Url)
 const l2RpcProvider = new ethers.providers.JsonRpcProvider(l2Url)
 let crossChainMessenger
 
-const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
+const privateKey = '0x589a1c5aeb4f24f3ea1e48c88e7b3c844b2816986d00fe52e03ef727a4e33032'
+// const privateKey = '0xd687eb0c13c15544e8d717f4637e39fbbf33367d77a3ffb81d72242ce7bad69e'
 
-const L1ERC20Addr = ''
-const L2ERC20Addr = ''
+const L1ERC20Addr = '0x5F4c7D793D898e64eddd1fC82D27EcfB5F6e4596' // USDT
+const L2ERC20Addr = '0xB4A71512cf4F3A8f675D2aeC76198D6419D219C7' // USDT
 let l1ERC20, l2ERC20    // OUTb contracts to show ERC-20 transfers
 let ourAddr             // The address of the signer we use.  
 const dou = BigInt(2)
@@ -40,8 +41,6 @@ const deployERC20 = async () => {
     } else {
         l1ERC20 = l1ERC20Factory.attach(L1ERC20Addr)
     }
-    let res = await l1ERC20.mint(l1Wallet.address, dou * oneToken)
-    await res.wait()
 
     const l2ERC20Factory = new ethers.ContractFactory(
         L2ERC20Artifacts.abi,
@@ -52,62 +51,28 @@ const deployERC20 = async () => {
     } else {
         l2ERC20 = l2ERC20Factory.attach(L2ERC20Addr)
     }
-    console.log(`Deploy token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}`)
-
-    const l1Address = l1ERC20.address
-    const l2Address = l2ERC20.address
-
-    const addTokenPairUrl = `http://localhost:8080/addToList?l1Address=${l1Address}&l2Address=${l2Address}`;
-    axios.get(addTokenPairUrl, {
-        params: {
-            l1Address: l1Address,
-            l2Address: l2Address
-        }
-    })
-        .then(response => {
-            console.log("add to token list success")
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    console.log(`Token on L1 ${l1ERC20.address}, L2 ${l2ERC20.address}`)
 }
-
-
-const sendEther = async () => {
-    console.log("send ether to 0xF1D598fD5f8367be41b0761696e643aC092b313E")
-    const privateKey1 = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
-    const walletL1 = new ethers.Wallet(privateKey1, l1RpcProvider)
-    const walletL2 = new ethers.Wallet(privateKey1, l2RpcProvider)
-    const signerL1 = new ethers.Wallet(privateKey, l1RpcProvider)
-    const signerL2 = new ethers.Wallet(privateKey, l2RpcProvider)
-    const tx = {
-        to: '0xF1D598fD5f8367be41b0761696e643aC092b313E',
-        value: ethers.utils.parseEther("100")
-    }
-    let l1Balance = (await signerL1.getBalance()).toString()
-    let l2Balance = (await signerL2.getBalance()).toString()
-
-    if (l1Balance.length < 20) {
-        let receipt = await walletL1.sendTransaction(tx)
-        await receipt.wait()
-    }
-    if (l2Balance.length < 20) {
-        let receipt = await walletL2.sendTransaction(tx)
-        await receipt.wait()
-    }
-    console.log('l1 balances', (await signerL1.getBalance()).toString())
-    console.log('l2 balances', (await signerL2.getBalance()).toString())
-}
-
 
 const setup = async () => {
     const [l1Signer, l2Signer] = await getSigners()
     ourAddr = l1Signer.address
     crossChainMessenger = new morphSDK.CrossChainMessenger({
-        l1ChainId: 900,
-        l2ChainId: 53077,
+        l1ChainId: 11155111,
+        l2ChainId: 2710,
         l1SignerOrProvider: l1Signer,
         l2SignerOrProvider: l2Signer,
+        backendURL: "https://indexer-testnet.morphl2.io",
+        contracts: {
+            l1: {
+                AddressManager: "0x7f1f7f8f35943cbc699167ff32dbb6ad069245c3",
+                L1CrossDomainMessenger: "0xfe26613a717a793560df394928bcc22ed0d8542e",
+                L1StandardBridge: "0xcb95f07b1f60868618752ceabbe4e52a1f564336",
+                BondManager: "0x0000000000000000000000000000000000000000",
+                MorphPortal: "0xef2afa792412ae5edf7e54dc6830f5117e2bd22c",
+                Rollup: "0x9672010622c9511127b56028465afd1d8ecabc65",
+            }
+        }
     })
     await deployERC20()
 }
@@ -118,15 +83,6 @@ const reportERC20Balances = async () => {
     console.log(`Token on L1 balances:${l1Balance}     Token on L2 balances:${l2Balance}`)
 }
 
-const lockERC20ToL1SB = async () => {
-    console.log("Lock ERC20")
-
-    let [l1Wallet, l2Wallet] = await getSigners()
-    const l1SBAddr = crossChainMessenger.contracts.l1.L1StandardBridge.address
-    const res = await l1ERC20.connect(l1Wallet).transfer(l1SBAddr, oneToken)
-    await res.wait()
-    await reportERC20Balances()
-}
 
 const depositERC20 = async () => {
     console.log("Deposit ERC20")
@@ -190,11 +146,22 @@ const withdrawERC20 = async () => {
 }
 
 const main = async () => {
-    await sendEther()
     await setup()
-    // await lockERC20ToL1SB()
-    await depositERC20()
-    await withdrawERC20()
+
+    const [l1Signer, l2Signer] = await getSigners()
+    let allowance = await l1ERC20.allowance(l1Signer.address, '0xcb95f07b1f60868618752ceabbe4e52a1f564336')
+    console.log(allowance)
+    const res = await l1ERC20.connect(l1Signer).approve('0xcb95f07b1f60868618752ceabbe4e52a1f564336', 0)
+    await res.wait()
+    allowance = await l1ERC20.allowance(l1Signer.address, '0xcb95f07b1f60868618752ceabbe4e52a1f564336')
+    console.log(allowance)
+    // await depositERC20()
+    // const bridge = await crossChainMessenger.getBridgeForTokenPair(L1ERC20Addr, L2ERC20Addr)
+    // console.log(bridge.l1Bridge)
+
+    // const tx = await crossChainMessenger.approveERC20(L1ERC20Addr, L2ERC20Addr, oneToken)
+    // console.log(tx)
+    // await withdrawERC20()
 }
 
 main().then(() => process.exit(0))

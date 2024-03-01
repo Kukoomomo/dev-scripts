@@ -1,0 +1,43 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IL1MessageQueueWithGasPriceOracle",
+  "sourceName": "contracts/L1/rollup/IL1MessageQueueWithGasPriceOracle.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldL2BaseFee",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newL2BaseFee",
+          "type": "uint256"
+        }
+      ],
+      "name": "UpdateL2BaseFee",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "l2BaseFee",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
