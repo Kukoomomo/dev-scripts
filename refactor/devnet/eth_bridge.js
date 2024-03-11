@@ -8,17 +8,17 @@ const l2Url = `http://localhost:8545`
 const l1RpcProvider = new ethers.providers.JsonRpcProvider(l1Url)
 const l2RpcProvider = new ethers.providers.JsonRpcProvider(l2Url)
 
-const proofApiUrl = 'http://localhost:8000/getProof';
-const indexApiUrl = 'http://localhost:8000/getL2SyncHeight';
+const proofApiUrl = 'http://localhost:8080/getProof';
+const indexApiUrl = 'http://localhost:8080/getL2SyncHeight';
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
-// contracr address
-const L1GRAddr = '0xa513e6e4b8f2a923d98304ec87f64353c4d5c853'
+// contract address
+const L1GRAddr = '0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6'
 const L2GRAddr = '0x5300000000000000000000000000000000000002'
-const L1CDMAddr = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0'
+const L1CDMAddr = '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9'
 const L2CDMAddr = '0x5300000000000000000000000000000000000007'
 const L2MPAddr = '0x5300000000000000000000000000000000000001'
-const RollupAddr = '0x0165878a594ca255338adfa4d48449f69242eb8f'
+const RollupAddr = '0xa513e6e4b8f2a923d98304ec87f64353c4d5c853'
 
 // params
 const dou = BigInt(2)
@@ -123,10 +123,10 @@ const depositETH = async () => {
     console.log(`depositETH took ${(new Date() - start) / 1000} seconds\n\n`)
 }
 
-const finalizeBatchs = async () => {
-    const res = await rollup.finalizeBatchsByNum(2)
+const finalizeBatches = async () => {
+    const res = await rollup.finalizeBatchesByNum(2)
     const receipt = await res.wait()
-    console.log(`finalizeBatchs status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
+    console.log(`finalizeBatches status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
     let lastCommittedBatchIndex = await rollup.lastCommittedBatchIndex()
     let lastFinalizedBatchIndex = await rollup.lastFinalizedBatchIndex()
     console.log("lastCommittedBatchIndex", lastCommittedBatchIndex.toNumber())
@@ -144,7 +144,38 @@ const withdrawETH = async () => {
     await waitRollupSuccess(receipt.transactionHash)
     await waitSyncSuccess(receipt.transactionHash)
     await provenByHash(receipt.transactionHash)
+    await relayByHash(receipt.transactionHash)
     console.log(`withdrawETH took ${(new Date() - start) / 1000} seconds\n\n`)
+}
+
+const relayByHash = async (hash) => {
+    const msg = await withdrawMsgByHash(hash)
+    const sender = msg[0].sender
+    const target = msg[0].target
+    const value = msg[0].value
+    const nonce = msg[0].messageNonce
+    const data = msg[0].message
+    if (
+        !ethers.utils.isAddress(sender) ||
+        !ethers.utils.isAddress(target) ||
+        !ethers.utils.isBytesLike(data)
+    ) {
+        console.log("params type not equal")
+        return
+    }
+    const waitTime = await rollup.FINALIZATION_PERIOD_SECONDS()
+    console.log(`wait rollup finalize`)
+    await sleep(waitTime)
+    await waitBatchFinalize(hash)
+    const res = await l1cdm.relayMessage(
+        sender,
+        target,
+        value,
+        nonce,
+        data,
+    )
+    const receipt = await res.wait()
+    console.log(`Relay status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
 }
 
 const provenByHash = async (hash) => {
@@ -310,7 +341,7 @@ const waitRollupSuccess = async (withdrawTxHash) => {
     while (totalTimeMs < Infinity) {
         const commitNum = await rollup.latestL2BlockNumber()
         if (commitNum >= withdrawNum) {
-            console.log(`time ${Date.now()} rollup successed! commit number ${commitNum} , withdraw number ${withdrawNum}`)
+            console.log(`time ${Date.now()} rollup succeed! commit number ${commitNum} , withdraw number ${withdrawNum}`)
             return
         }
         console.log(`time ${Date.now()} wait rollup! commit number ${commitNum} , withdraw number ${withdrawNum}`)
@@ -327,11 +358,32 @@ const waitSyncSuccess = async (withdrawTxHash) => {
     while (totalTimeMs < Infinity) {
         const syncNum = await getSyncNumber()
         if (syncNum >= withdrawNum) {
-            console.log(`time ${Date.now()} backend sync successed! sync number ${syncNum} , need ${withdrawNum}`)
+            console.log(`time ${Date.now()} backend sync succeed! sync number ${syncNum} , need ${withdrawNum}`)
             return
         }
         console.log(`time ${Date.now()} wait backend sync! sync number ${syncNum} , withdraw number ${withdrawNum}`)
         await sleep(2000)
+        totalTimeMs += Date.now() - tick
+    }
+}
+
+
+const waitBatchFinalize = async (withdrawTxHash) => {
+    const msgs = await withdrawMsgByHash(withdrawTxHash)
+    const withdrawNum = msgs[0].blockNumber
+    const tick = Date.now()
+
+    let totalTimeMs = 0
+    while (totalTimeMs < Infinity) {
+        const fbi = await rollup.lastFinalizedBatchIndex()
+        const batchStorage = await rollup.committedBatchStores(fbi)
+        const finalizeNum = batchStorage.blockNumber.toString()
+        if (finalizeNum >= withdrawNum) {
+            console.log(`time ${Date.now()} batch finalized succeed! finalize number ${finalizeNum} , withdraw number ${withdrawNum}`)
+            return
+        }
+        console.log(`time ${Date.now()} wait batch finalized! finalize number ${finalizeNum} , withdraw number ${withdrawNum}`)
+        await sleep(8000)
         totalTimeMs += Date.now() - tick
     }
 }
@@ -381,8 +433,11 @@ const testSleep = async (ms) => {
 const main = async () => {
     await sendEther()
     await setup()
-    await depositETH()
-    await withdrawETH()
+    for (let i = 0; i < 10; i++) {
+        await sendEther()
+        await depositETH()
+        await withdrawETH()
+    }
 }
 
 main().then(() => process.exit(0))
