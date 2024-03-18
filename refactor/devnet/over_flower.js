@@ -8,8 +8,8 @@ const l2Url = `http://localhost:8545`
 const l1RpcProvider = new ethers.providers.JsonRpcProvider(l1Url)
 const l2RpcProvider = new ethers.providers.JsonRpcProvider(l2Url)
 
-const proofApiUrl = 'http://localhost:8080/getProof'
-const indexApiUrl = 'http://localhost:8080/getL2SyncHeight'
+const proofApiUrl = 'http://localhost:8080/getProof';
+const indexApiUrl = 'http://localhost:8080/getL2SyncHeight';
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
 // contract address
@@ -110,17 +110,8 @@ const reportBalances = async () => {
     console.log(`On L1:${l1Balance} Gwei   On L2:${l2Balance} Gwei`)
 }
 
-const depositETH = async () => {
-    console.log("Deposit ETH")
-    await reportBalances()
-    const start = new Date()
-
-    // deposit 1 ether use gasLimit 100000 and value 1.1 ether
-    const res = await l1gr["depositETH(uint256,uint256)"](ethers.utils.parseEther('1'), 210000, { value: ethers.utils.parseEther('1.1') })
-    const receipt = await res.wait()
-    console.log(`Deposit status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
-    await waitDepositSuccess(receipt.transactionHash)
-    console.log(`depositETH took ${(new Date() - start) / 1000} seconds\n\n`)
+const crossMsg = async () => {
+   
 }
 
 const finalizeBatches = async () => {
@@ -133,22 +124,37 @@ const finalizeBatches = async () => {
     console.log("lastFinalizedBatchIndex", lastFinalizedBatchIndex.toNumber())
 }
 
-const withdrawETH = async () => {
-    console.log("Withdraw ETH")
-    await reportBalances()
-    const start = new Date()
-
-    let res = await l2gr["withdrawETH(uint256,uint256)"](1000, 110000, { value: 1000 })
-    let receipt = await res.wait()
-    console.log(`Withdraw status ${receipt.status == 1}, txHash ${receipt.transactionHash},height ${receipt.blockNumber}`)
-    await waitRollupSuccess(receipt.transactionHash)
-    await waitBatchFinalize(receipt.transactionHash)
-    await waitSyncSuccess(receipt.transactionHash)
-    await provenAndRelayByHash(receipt.transactionHash)
-    console.log(`withdrawETH took ${(new Date() - start) / 1000} seconds\n\n`)
+const relayByHash = async (hash) => {
+    const msg = await withdrawMsgByHash(hash)
+    const sender = msg[0].sender
+    const target = msg[0].target
+    const value = msg[0].value
+    const nonce = msg[0].messageNonce
+    const data = msg[0].message
+    if (
+        !ethers.utils.isAddress(sender) ||
+        !ethers.utils.isAddress(target) ||
+        !ethers.utils.isBytesLike(data)
+    ) {
+        console.log("params type not equal")
+        return
+    }
+    const waitTime = await rollup.FINALIZATION_PERIOD_SECONDS()
+    console.log(`wait rollup finalize`)
+    await sleep(waitTime)
+    await waitBatchFinalize(hash)
+    const res = await l1cdm.relayMessage(
+        sender,
+        target,
+        value,
+        nonce,
+        data,
+    )
+    const receipt = await res.wait()
+    console.log(`Relay status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
 }
 
-const provenAndRelayByHash = async (hash) => {
+const provenByHash = async (hash) => {
     const msg = await withdrawMsgByHash(hash)
     const sender = msg[0].sender
     const target = msg[0].target
@@ -157,7 +163,7 @@ const provenAndRelayByHash = async (hash) => {
     const data = msg[0].message
 
     const proofData = await getProofByNonce(nonce)
-    
+
     const wdHash = await hashCrossMsg(
         sender,
         target,
@@ -178,7 +184,7 @@ const provenAndRelayByHash = async (hash) => {
         console.log("params type not equal")
         return
     }
-    res = await l1cdm.proveAndRelayMessage(
+    res = await l1cdm.proveMessage(
         sender,
         target,
         value,
@@ -188,7 +194,7 @@ const provenAndRelayByHash = async (hash) => {
         proofData.root,
     )
     receipt = await res.wait()
-    console.log(`Proven and Relay status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
+    console.log(`Proven status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
 }
 
 const getProofByNonce = async (nonce) => {
@@ -337,6 +343,7 @@ const waitSyncSuccess = async (withdrawTxHash) => {
     }
 }
 
+
 const waitBatchFinalize = async (withdrawTxHash) => {
     const msgs = await withdrawMsgByHash(withdrawTxHash)
     const withdrawNum = msgs[0].blockNumber
@@ -390,14 +397,19 @@ const sleep = async (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const testSleep = async (ms) => {
+    let i = 0
+    while (i < 5) {
+        await sleep(4000)
+        console.log(`now in index ${i}`)
+        i++
+    }
+}
+
 const main = async () => {
     await sendEther()
     await setup()
-    for (let i = 0; i < 10; i++) {
-        await sendEther()
-        await depositETH()
-        await withdrawETH()
-    }
+    await crossMsg()
 }
 
 main().then(() => process.exit(0))

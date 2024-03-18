@@ -15,8 +15,8 @@ const l2Url = `http://localhost:8545`
 const l1RpcProvider = new ethers.providers.JsonRpcProvider(l1Url)
 const l2RpcProvider = new ethers.providers.JsonRpcProvider(l2Url)
 
-const proofApiUrl = 'http://localhost:8080/getProof';
-const indexApiUrl = 'http://localhost:8080/getL2SyncHeight';
+const proofApiUrl = 'http://localhost:8080/getProof'
+const indexApiUrl = 'http://localhost:8080/getL2SyncHeight'
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
 // contract address
@@ -221,44 +221,14 @@ const withdrawERC20 = async () => {
     rec = await res.wait()
     console.log(`Withdraw status ${rec.status == 1}, txHash ${rec.transactionHash},height ${rec.blockNumber}`)
     await waitRollupSuccess(rec.transactionHash)
+    await waitBatchFinalize(rec.transactionHash)
     await waitSyncSuccess(rec.transactionHash)
-    await provenByHash(rec.transactionHash)
-    await relayByHash(rec.transactionHash)
+    await provenAndRelayByHash(rec.transactionHash)
     await reportERC20Balances()
     console.log(`withdrawERC20 took ${(new Date() - start) / 1000} seconds\n\n`)
 }
 
-const relayByHash = async (hash) => {
-    const msg = await withdrawMsgByHash(hash)
-    const sender = msg[0].sender
-    const target = msg[0].target
-    const value = msg[0].value
-    const nonce = msg[0].messageNonce
-    const data = msg[0].message
-    if (
-        !ethers.utils.isAddress(sender) ||
-        !ethers.utils.isAddress(target) ||
-        !ethers.utils.isBytesLike(data)
-    ) {
-        console.log("params type not equal")
-        return
-    }
-    const waitTime = await rollup.FINALIZATION_PERIOD_SECONDS()
-    console.log(`wait rollup finalize`)
-    await sleep(waitTime)
-    await waitBatchFinalize(hash)
-    const res = await l1cdm.relayMessage(
-        sender,
-        target,
-        value,
-        nonce,
-        data,
-    )
-    const receipt = await res.wait()
-    console.log(`Relay status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
-}
-
-const provenByHash = async (hash) => {
+const provenAndRelayByHash = async (hash) => {
     const msg = await withdrawMsgByHash(hash)
     const sender = msg[0].sender
     const target = msg[0].target
@@ -288,7 +258,7 @@ const provenByHash = async (hash) => {
         console.log("params type not equal")
         return
     }
-    res = await l1cdm.proveMessage(
+    res = await l1cdm.proveAndRelayMessage(
         sender,
         target,
         value,

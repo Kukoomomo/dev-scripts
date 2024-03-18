@@ -24,11 +24,6 @@
           "type": "address[]"
         },
         {
-          "internalType": "uint256[]",
-          "name": "sequencerIndex",
-          "type": "uint256[]"
-        },
-        {
           "internalType": "address",
           "name": "challenger",
           "type": "address"

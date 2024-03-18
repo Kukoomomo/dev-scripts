@@ -152,6 +152,25 @@
         {
           "indexed": false,
           "internalType": "uint256",
+          "name": "oldPeriod",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newPeriod",
+          "type": "uint256"
+        }
+      ],
+      "name": "UpdateFinalizationPeriodSeconds",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
           "name": "oldMaxNumTxInChunk",
           "type": "uint256"
         },
@@ -163,6 +182,25 @@
         }
       ],
       "name": "UpdateMaxNumTxInChunk",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldWindow",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newWindow",
+          "type": "uint256"
+        }
+      ],
+      "name": "UpdateProofWindow",
       "type": "event"
     },
     {
@@ -288,9 +326,9 @@
           "type": "uint256"
         },
         {
-          "internalType": "uint256[]",
-          "name": "sequencerIndex",
-          "type": "uint256[]"
+          "internalType": "address[]",
+          "name": "sequencers",
+          "type": "address[]"
         },
         {
           "internalType": "bytes",
@@ -415,9 +453,9 @@
       "name": "withdrawalRoots",
       "outputs": [
         {
-          "internalType": "uint256",
+          "internalType": "bool",
           "name": "",
-          "type": "uint256"
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
