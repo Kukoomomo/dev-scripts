@@ -4,6 +4,31 @@
   "sourceName": "contracts/L1/staking/IL1Sequencer.sol",
   "abi": [
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "version",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "sequencersAddr",
+          "type": "address[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes[]",
+          "name": "sequencersBLS",
+          "type": "bytes[]"
+        }
+      ],
+      "name": "SequencerUpdated",
+      "type": "event"
+    },
+    {
       "inputs": [],
       "name": "currentVersion",
       "outputs": [
@@ -24,7 +49,7 @@
           "type": "uint256"
         }
       ],
-      "name": "getSequencerAddrs",
+      "name": "getSequencerAddresses",
       "outputs": [
         {
           "internalType": "address[]",
@@ -60,6 +85,11 @@
           "internalType": "address",
           "name": "addr",
           "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "version",
+          "type": "uint256"
         }
       ],
       "name": "isSequencer",
@@ -128,7 +158,7 @@
         },
         {
           "internalType": "address[]",
-          "name": "_sequencerAddrs",
+          "name": "_sequencerAddresses",
           "type": "address[]"
         },
         {
@@ -138,18 +168,13 @@
         },
         {
           "internalType": "uint32",
-          "name": "gasLimit",
+          "name": "_gasLimit",
           "type": "uint32"
-        },
-        {
-          "internalType": "address",
-          "name": "_refundAddress",
-          "type": "address"
         }
       ],
       "name": "updateAndSendSequencerSet",
       "outputs": [],
-      "stateMutability": "payable",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -168,6 +193,11 @@
           "internalType": "bytes",
           "name": "signature",
           "type": "bytes"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "batchHash",
+          "type": "bytes32"
         }
       ],
       "name": "verifySignature",

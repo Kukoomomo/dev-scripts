@@ -24,23 +24,19 @@
           "type": "address[]"
         },
         {
-          "internalType": "address",
-          "name": "challenger",
-          "type": "address"
-        },
-        {
           "internalType": "uint32",
           "name": "_minGasLimit",
           "type": "uint32"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_gasFee",
-          "type": "uint256"
         }
       ],
       "name": "slash",
-      "outputs": [],
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     }

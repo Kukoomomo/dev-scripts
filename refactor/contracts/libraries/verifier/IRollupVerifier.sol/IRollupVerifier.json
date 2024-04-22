@@ -7,17 +7,22 @@
       "inputs": [
         {
           "internalType": "uint256",
-          "name": "batchIndex",
+          "name": "_version",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_batchIndex",
           "type": "uint256"
         },
         {
           "internalType": "bytes",
-          "name": "aggrProof",
+          "name": "_aggrProof",
           "type": "bytes"
         },
         {
           "internalType": "bytes32",
-          "name": "publicInputHash",
+          "name": "_publicInputHash",
           "type": "bytes32"
         }
       ],

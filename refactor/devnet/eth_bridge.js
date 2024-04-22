@@ -157,7 +157,6 @@ const provenAndRelayByHash = async (hash) => {
     const data = msg[0].message
 
     const proofData = await getProofByNonce(nonce)
-    
     const wdHash = await hashCrossMsg(
         sender,
         target,
@@ -309,7 +308,9 @@ const waitRollupSuccess = async (withdrawTxHash) => {
 
     let totalTimeMs = 0
     while (totalTimeMs < Infinity) {
-        const commitNum = await rollup.latestL2BlockNumber()
+        const commitIndex = await rollup.lastCommittedBatchIndex()
+        const batch = await rollup.committedBatchStores(commitIndex)
+        const commitNum = batch.blockNumber
         if (commitNum >= withdrawNum) {
             console.log(`time ${Date.now()} rollup succeed! commit number ${commitNum} , withdraw number ${withdrawNum}`)
             return
