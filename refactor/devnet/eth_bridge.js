@@ -1,6 +1,13 @@
 const ethers = require("ethers")
-const axios = require('axios');
-const { expect } = require("chai")
+const {
+    sleep,
+    getAddressByName,
+    waitDepositSuccess,
+    waitRollupSuccess,
+    waitBatchFinalize,
+    waitSyncSuccess,
+    provenAndRelayByHash
+} = require('./utils')
 
 // config 
 const l1Url = `http://localhost:9545`
@@ -8,17 +15,15 @@ const l2Url = `http://localhost:8545`
 const l1RpcProvider = new ethers.providers.JsonRpcProvider(l1Url)
 const l2RpcProvider = new ethers.providers.JsonRpcProvider(l2Url)
 
-const proofApiUrl = 'http://localhost:8080/getProof'
-const indexApiUrl = 'http://localhost:8080/getL2SyncHeight'
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
 // contract address
-const L1GRAddr = '0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6'
+const L1GRAddr = getAddressByName('Proxy__L1GatewayRouter')
 const L2GRAddr = '0x5300000000000000000000000000000000000002'
-const L1CDMAddr = '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9'
+const L1CDMAddr = getAddressByName('Proxy__L1CrossDomainMessenger')
 const L2CDMAddr = '0x5300000000000000000000000000000000000007'
 const L2MPAddr = '0x5300000000000000000000000000000000000001'
-const RollupAddr = '0xa513e6e4b8f2a923d98304ec87f64353c4d5c853'
+const RollupAddr = getAddressByName('Proxy__Rollup')
 
 // params
 const dou = BigInt(2)
@@ -30,7 +35,6 @@ var l2gr
 var l1cdm
 var l2cdm
 var rollup
-var l2mp
 
 const getSigners = async () => {
     const l1Wallet = new ethers.Wallet(privateKey, l1RpcProvider)
@@ -119,18 +123,8 @@ const depositETH = async () => {
     const res = await l1gr["depositETH(uint256,uint256)"](ethers.utils.parseEther('1'), 210000, { value: ethers.utils.parseEther('1.1') })
     const receipt = await res.wait()
     console.log(`Deposit status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
-    await waitDepositSuccess(receipt.transactionHash)
+    await waitDepositSuccess(l1RpcProvider, receipt.transactionHash, l1cdm, l2cdm)
     console.log(`depositETH took ${(new Date() - start) / 1000} seconds\n\n`)
-}
-
-const finalizeBatches = async () => {
-    const res = await rollup.finalizeBatchesByNum(2)
-    const receipt = await res.wait()
-    console.log(`finalizeBatches status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
-    let lastCommittedBatchIndex = await rollup.lastCommittedBatchIndex()
-    let lastFinalizedBatchIndex = await rollup.lastFinalizedBatchIndex()
-    console.log("lastCommittedBatchIndex", lastCommittedBatchIndex.toNumber())
-    console.log("lastFinalizedBatchIndex", lastFinalizedBatchIndex.toNumber())
 }
 
 const withdrawETH = async () => {
@@ -141,254 +135,11 @@ const withdrawETH = async () => {
     let res = await l2gr["withdrawETH(uint256,uint256)"](1000, 110000, { value: 1000 })
     let receipt = await res.wait()
     console.log(`Withdraw status ${receipt.status == 1}, txHash ${receipt.transactionHash},height ${receipt.blockNumber}`)
-    await waitRollupSuccess(receipt.transactionHash)
-    await waitBatchFinalize(receipt.transactionHash)
-    await waitSyncSuccess(receipt.transactionHash)
-    await provenAndRelayByHash(receipt.transactionHash)
+    await waitRollupSuccess(l2RpcProvider, receipt.transactionHash, l2cdm, rollup)
+    await waitBatchFinalize(l2RpcProvider, receipt.transactionHash, l2cdm, rollup)
+    await waitSyncSuccess(l2RpcProvider, receipt.transactionHash, l2cdm, rollup)
+    await provenAndRelayByHash(l2RpcProvider, receipt.transactionHash, l1cdm, l2cdm)
     console.log(`withdrawETH took ${(new Date() - start) / 1000} seconds\n\n`)
-}
-
-const provenAndRelayByHash = async (hash) => {
-    const msg = await withdrawMsgByHash(hash)
-    const sender = msg[0].sender
-    const target = msg[0].target
-    const value = msg[0].value
-    const nonce = msg[0].messageNonce
-    const data = msg[0].message
-
-    const proofData = await getProofByNonce(nonce)
-    const wdHash = await hashCrossMsg(
-        sender,
-        target,
-        value,
-        nonce,
-        data,
-    )
-    if (wdHash != proofData.leaf) {
-        console.log(`leaf params type not equal msgNonce ${nonce} proofIndex ${proofData.index} ${wdHash}, ${proofData.leaf}`)
-        return
-    }
-    if (
-        !ethers.utils.isAddress(msg[0].sender) ||
-        !ethers.utils.isAddress(msg[0].target) ||
-        !ethers.utils.isBytesLike(msg[0].message) ||
-        !ethers.utils.isBytesLike(proofData.root)
-    ) {
-        console.log("params type not equal")
-        return
-    }
-    res = await l1cdm.proveAndRelayMessage(
-        sender,
-        target,
-        value,
-        nonce,
-        data,
-        proofData.proof,
-        proofData.root,
-    )
-    receipt = await res.wait()
-    console.log(`Proven and Relay status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
-}
-
-const getProofByNonce = async (nonce) => {
-    console.log(`get proof from server with nonce ${nonce}`)
-    return await axios.get(proofApiUrl, {
-        params: {
-            nonce: nonce
-        }
-    })
-        .then(response => {
-            return {
-                leaf: response.data.leaf,
-                proof: response.data.proof,
-                root: response.data.root,
-                index: response.data.index,
-            }
-        })
-        .catch(error => {
-            console.error(error);
-        });
-}
-
-const getSyncNumber = async () => {
-    return axios.get(indexApiUrl, {})
-        .then(response => {
-            return response.data
-        })
-        .catch(error => {
-            console.error(error);
-        });
-
-}
-
-const withdrawMsgByHash = async (hash) => {
-    const receipt = await l2RpcProvider.getTransactionReceipt(hash)
-    const msg = receipt.logs
-        .filter((log) => {
-            // Only look at logs emitted by the messenger address
-            return log.address.toLocaleLowerCase() === l2cdm.address.toLocaleLowerCase()
-        })
-        .filter((log) => {
-            // Only look at SentMessage logs specifically
-            const parsed = l2cdm.interface.parseLog(log)
-            return parsed.name === 'SentMessage'
-        }).map((log) => {
-            // Convert each SentMessage log into a message object
-            const parsed = l2cdm.interface.parseLog(log)
-            return {
-                sender: parsed.args.sender,
-                target: parsed.args.target,
-                value: ethers.BigNumber.from(parsed.args.value).toString(),
-                messageNonce: ethers.BigNumber.from(parsed.args.messageNonce).toString(),
-                gasLimit: ethers.BigNumber.from(parsed.args.gasLimit).toString(),
-                message: parsed.args.message,
-                logIndex: log.logIndex,
-                blockNumber: log.blockNumber,
-                transactionHash: log.transactionHash,
-            }
-        })
-    return msg
-}
-
-const depositMsgByHash = async (hash) => {
-    const receipt = await l1RpcProvider.getTransactionReceipt(hash)
-    const msgs = receipt.logs
-        .filter((log) => {
-
-            // Only look at logs emitted by the messenger address
-            return log.address.toLocaleLowerCase() === l1cdm.address.toLocaleLowerCase()
-        })
-        .filter((log) => {
-            // Only look at SentMessage logs specifically
-            const parsed = l1cdm.interface.parseLog(log)
-            return parsed.name === 'SentMessage'
-        }).map((log) => {
-            // Convert each SentMessage log into a message object
-            const parsed = l1cdm.interface.parseLog(log)
-            return {
-                sender: parsed.args.sender,
-                target: parsed.args.target,
-                value: ethers.BigNumber.from(parsed.args.value).toString(),
-                messageNonce: ethers.BigNumber.from(parsed.args.messageNonce).toString(),
-                gasLimit: ethers.BigNumber.from(parsed.args.gasLimit).toString(),
-                message: parsed.args.message,
-                logIndex: log.logIndex,
-                blockNumber: log.blockNumber,
-                transactionHash: log.transactionHash,
-            }
-        })
-    return msgs
-}
-
-const hashCrossMsg = async (
-    sender,
-    target,
-    value,
-    nonce,
-    data
-) => {
-    const encoded = l2cdm.interface.encodeFunctionData(
-        'relayMessage',
-        [
-            sender,
-            target,
-            value,
-            nonce,
-            data,
-        ]
-    );
-    const wdHash = ethers.utils.keccak256(encoded)
-    return wdHash
-}
-
-const waitRollupSuccess = async (withdrawTxHash) => {
-    const msgs = await withdrawMsgByHash(withdrawTxHash)
-    const withdrawNum = msgs[0].blockNumber
-    const tick = Date.now()
-
-    let totalTimeMs = 0
-    while (totalTimeMs < Infinity) {
-        const commitIndex = await rollup.lastCommittedBatchIndex()
-        const batch = await rollup.committedBatchStores(commitIndex)
-        const commitNum = batch.blockNumber
-        if (commitNum >= withdrawNum) {
-            console.log(`time ${Date.now()} rollup succeed! commit number ${commitNum} , withdraw number ${withdrawNum}`)
-            return
-        }
-        console.log(`time ${Date.now()} wait rollup! commit number ${commitNum} , withdraw number ${withdrawNum}`)
-        await sleep(8000)
-        totalTimeMs += Date.now() - tick
-    }
-}
-
-const waitSyncSuccess = async (withdrawTxHash) => {
-    const msgs = await withdrawMsgByHash(withdrawTxHash)
-    const withdrawNum = msgs[0].blockNumber
-    let totalTimeMs = 0
-    const tick = Date.now()
-    while (totalTimeMs < Infinity) {
-        const syncNum = await getSyncNumber()
-        if (syncNum >= withdrawNum) {
-            console.log(`time ${Date.now()} backend sync succeed! sync number ${syncNum} , need ${withdrawNum}`)
-            return
-        }
-        console.log(`time ${Date.now()} wait backend sync! sync number ${syncNum} , withdraw number ${withdrawNum}`)
-        await sleep(2000)
-        totalTimeMs += Date.now() - tick
-    }
-}
-
-const waitBatchFinalize = async (withdrawTxHash) => {
-    const msgs = await withdrawMsgByHash(withdrawTxHash)
-    const withdrawNum = msgs[0].blockNumber
-    const tick = Date.now()
-
-    let totalTimeMs = 0
-    while (totalTimeMs < Infinity) {
-        const fbi = await rollup.lastFinalizedBatchIndex()
-        const batchStorage = await rollup.committedBatchStores(fbi)
-        const finalizeNum = batchStorage.blockNumber.toString()
-        if (finalizeNum >= withdrawNum) {
-            console.log(`time ${Date.now()} batch finalized succeed! finalize number ${finalizeNum} , withdraw number ${withdrawNum}`)
-            return
-        }
-        console.log(`time ${Date.now()} wait batch finalized! finalize number ${finalizeNum} , withdraw number ${withdrawNum}`)
-        await sleep(8000)
-        totalTimeMs += Date.now() - tick
-    }
-}
-
-const waitDepositSuccess = async (depositHash) => {
-    let totalTimeMs = 0
-    const tick = Date.now()
-    const msgs = await depositMsgByHash(depositHash)
-    const sender = msgs[0].sender
-    const target = msgs[0].target
-    const value = msgs[0].value
-    const nonce = msgs[0].messageNonce
-    const data = msgs[0].message
-    const xDomainCalldataHash = await hashCrossMsg(
-        sender,
-        target,
-        value,
-        nonce,
-        data
-    )
-
-    while (totalTimeMs < Infinity) {
-        const executed = await l2cdm.isL1MessageExecuted(xDomainCalldataHash)
-        if (executed) {
-            console.log(`time ${Date.now()} l1 msg executed ${executed}`)
-            return
-        }
-        console.log(`time ${Date.now()} l1 msg executed ${executed}`)
-        await sleep(4000)
-        totalTimeMs += Date.now() - tick
-    }
-}
-
-const sleep = async (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 const main = async () => {

@@ -1,7 +1,7 @@
 const axios = require('axios');
 
-const proofApiUrl = 'http://localhost:8000/getProof';
-const indexApiUrl = 'http://localhost:8000/getL2SyncHeight';
+const proofApiUrl = 'http://localhost:8080/getProof';
+const indexApiUrl = 'http://localhost:8080/getL2SyncHeight';
 const index = 1;
 
 axios.get(proofApiUrl, {
