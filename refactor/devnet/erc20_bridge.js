@@ -18,6 +18,7 @@ const l2RpcProvider = new ethers.providers.JsonRpcProvider(l2Url)
 const privateKey = '0xe63dfa829f3ab6b3bf48c3b350c712e2e1032e23188298ba4d9097b14ddedc0f'
 
 // contract address
+const L1SGAddr = getAddressByName('Proxy__L1StandardERC20Gateway')
 const L1GRAddr = getAddressByName('Proxy__L1GatewayRouter')
 const L2GRAddr = '0x5300000000000000000000000000000000000002'
 const L1CDMAddr = getAddressByName('Proxy__L1CrossDomainMessenger')
@@ -31,6 +32,7 @@ const L1ERC20Addr = ''
 const oneToken = BigInt(1e18)
 let ourAddr             // The address of the signer we use.  
 
+var l1sg
 var l1gr
 var l2gr
 var l1cdm
@@ -78,6 +80,7 @@ const setup = async () => {
     const [l1Signer, l2Signer] = await getSigners()
     ourAddr = l1Signer.address
 
+    const L1SGArtifacts = require("../contracts/l1/gateways/L1StandardERC20Gateway.sol/L1StandardERC20Gateway.json")
     const L1GRArtifacts = require("../contracts/L1/gateways/L1GatewayRouter.sol/L1GatewayRouter.json")
     const L1CDMArtifacts = require("../contracts/L1/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json")
     const L2GRArtifacts = require("../contracts/L2/gateways/L2GatewayRouter.sol/L2GatewayRouter.json")
@@ -88,6 +91,10 @@ const setup = async () => {
     const ERC20Artifacts = require("../contracts/libraries/token/MockERC20.sol/MockERC20.json")
 
     // L1 Factory
+    const l1SGFactory = new ethers.ContractFactory(
+        L1SGArtifacts.abi,
+        L1SGArtifacts.bytecode,
+    ).connect(l1Signer)
     const l1GRFactory = new ethers.ContractFactory(
         L1GRArtifacts.abi,
         L1GRArtifacts.bytecode,
@@ -125,6 +132,7 @@ const setup = async () => {
     }
 
     // contract setup
+    l1sg = l1SGFactory.attach(L1SGAddr)
     l1gr = l1GRFactory.attach(L1GRAddr)
     l1cdm = l1CDMFactory.attach(L1CDMAddr)
     rollup = rollupFactory.attach(RollupAddr)
@@ -173,11 +181,18 @@ const depositETH = async () => {
     console.log(`depositETH took ${(new Date() - start) / 1000} seconds`)
 }
 
-const depositERC20 = async () => {
+const lockERC20 = async () => {
     console.log("Deposit ERC20")
+    await ERC20Mint()
     await reportBalances()
     const start = new Date()
+    let res = await l1token.transfer(l1sg.address, oneToken)
+    let rec = await res.wait()
+    let gatewayBalance = (await l1token.balanceOf(l1sg.address)).toString()
+    console.log(`locked ${rec.status == 1}: gateway has balance ${gatewayBalance}`)
+}
 
+const ERC20Mint = async () => {
     // mint l1 token
     const l1Balance = (await l1token.balanceOf(ourAddr)).toString()
     if (l1Balance.length < 19) {
@@ -186,6 +201,12 @@ const depositERC20 = async () => {
         const balance = await l1token.balanceOf(ourAddr)
         console.log(`mint ${rec.status == 1}: ${ourAddr} has balance ${balance}`)
     }
+}
+const depositERC20 = async () => {
+    console.log("Deposit ERC20")
+    await ERC20Mint()
+    await reportBalances()
+    const start = new Date()
 
     // approve
     let res = await l1token.approve(l1gr.address, oneToken)
@@ -229,6 +250,7 @@ const main = async () => {
     await sendEther()
     await setup()
     for (let i = 0; i < 100; i++) {
+        await lockERC20()
         await depositERC20()
         await withdrawERC20()
     }
