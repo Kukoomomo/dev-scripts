@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IL1ETHGateway",
-  "sourceName": "contracts/L1/gateways/IL1ETHGateway.sol",
+  "sourceName": "contracts/l1/gateways/IL1ETHGateway.sol",
   "abi": [
     {
       "anonymous": false,

@@ -609,7 +609,7 @@ const waitBatchFinalize = async (withdrawTxHash) => {
     let totalTimeMs = 0;
     while (totalTimeMs < Infinity) {
         const fbi = await rollup.lastFinalizedBatchIndex();
-        const batchStorage = await rollup.committedBatchStores(fbi);
+        const batchStorage = await rollup.batchBaseStore(fbi);
         const finalizeNum = batchStorage.blockNumber.toString();
         if (finalizeNum >= withdrawNum) {
             console.log(

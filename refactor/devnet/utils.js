@@ -4,10 +4,27 @@ const axios = require('axios');
 
 const proofApiUrl = 'http://localhost:8080/getProof'
 const indexApiUrl = 'http://localhost:8080/getL2ConfirmHeight'
+const addTokenPairUrl = `http://localhost:8081/addToList`;
 const addressesFilePath = './devnetL1.json'
 
+const addToTokenList = async (l1Address, l2Address) => {
+    console.log(`add pair token list ${l1Address} ${l2Address}`)
+    await axios.get(addTokenPairUrl, {
+        params: {
+            l1Address: l1Address,
+            l2Address: l2Address
+        }
+    })
+        .then(response => {
+            console.log("add to token list success")
+        })
+        .catch(error => {
+            console.log("add to token list failed");
+        });
+}
+
 const getSyncNumber = async () => {
-    return axios.get(indexApiUrl, {})
+    return await axios.get(indexApiUrl, {})
         .then(response => {
             return response.data
         })
@@ -180,7 +197,7 @@ const waitRollupSuccess = async (l2RpcProvider, withdrawTxHash, l2cdm, rollup) =
     let totalTimeMs = 0
     while (totalTimeMs < Infinity) {
         const commitIndex = await rollup.lastCommittedBatchIndex()
-        const batch = await rollup.committedBatchStores(commitIndex)
+        const batch = await rollup.batchBaseStore(commitIndex)
         const commitNum = batch.blockNumber
         if (commitNum >= withdrawNum) {
             console.log(`time ${Date.now()} rollup succeed! commit number ${commitNum} , withdraw number ${withdrawNum}`)
@@ -200,7 +217,7 @@ const waitBatchFinalize = async (l2RpcProvider, withdrawTxHash, l2cdm, rollup) =
     let totalTimeMs = 0
     while (totalTimeMs < Infinity) {
         const fbi = await rollup.lastFinalizedBatchIndex()
-        const batchStorage = await rollup.committedBatchStores(fbi)
+        const batchStorage = await rollup.batchBaseStore(fbi)
         const finalizeNum = batchStorage.blockNumber.toString()
         if (finalizeNum >= withdrawNum) {
             console.log(`time ${Date.now()} batch finalized succeed! finalize number ${finalizeNum} , withdraw number ${withdrawNum}`)
@@ -273,6 +290,7 @@ const provenAndRelayByHash = async (l2RpcProvider, hash, l1cdm, l2cdm) => {
 }
 
 module.exports = {
+    addToTokenList,
     getSyncNumber,
     sleep,
     getAddressByName,

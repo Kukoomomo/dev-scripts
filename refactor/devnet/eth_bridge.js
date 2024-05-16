@@ -63,12 +63,12 @@ const sendEther = async () => {
 
 const setup = async () => {
     const [l1Signer, l2Signer] = await getSigners()
-    const L1GRArtifacts = require("../contracts/L1/gateways/L1GatewayRouter.sol/L1GatewayRouter.json")
-    const L1CDMArtifacts = require("../contracts/L1/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json")
-    const L2GRArtifacts = require("../contracts/L2/gateways/L2GatewayRouter.sol/L2GatewayRouter.json")
-    const L2CDMArtifacts = require("../contracts/L2/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json")
-    const RollupArtifacts = require("../contracts/L1/rollup/Rollup.sol/Rollup.json")
-    const L2MPArtifacts = require("../contracts/L2/system/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json")
+    const L1GRArtifacts = require("../contracts/l1/gateways/L1GatewayRouter.sol/L1GatewayRouter.json")
+    const L1CDMArtifacts = require("../contracts/l1/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json")
+    const L2GRArtifacts = require("../contracts/l2/gateways/L2GatewayRouter.sol/L2GatewayRouter.json")
+    const L2CDMArtifacts = require("../contracts/l2/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json")
+    const RollupArtifacts = require("../contracts/l1/rollup/Rollup.sol/Rollup.json")
+    const L2MPArtifacts = require("../contracts/l2/system/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json")
 
     // L1 Factory
     const l1GRFactory = new ethers.ContractFactory(
@@ -122,7 +122,7 @@ const depositETH = async () => {
     // deposit 1 ether use gasLimit 100000 and value 1.1 ether
     const res = await l1gr["depositETH(uint256,uint256)"](ethers.utils.parseEther('1'), 210000, { value: ethers.utils.parseEther('1.1') })
     const receipt = await res.wait()
-    console.log(`Deposit status ${receipt.status == 1}, txHash ${receipt.transactionHash}`)
+    console.log(`Deposit status ${receipt.status == 1}, txHash ${receipt.transactionHash}, height ${receipt.blockNumber}`)
     await waitDepositSuccess(l1RpcProvider, receipt.transactionHash, l1cdm, l2cdm)
     console.log(`depositETH took ${(new Date() - start) / 1000} seconds\n\n`)
 }
@@ -145,10 +145,10 @@ const withdrawETH = async () => {
 const main = async () => {
     await sendEther()
     await setup()
-    for (let i = 0; i < 10; i++) {
-        await sendEther()
-        await depositETH()
-        await withdrawETH()
+    for (let i = 0; i < 100; i++) {
+       await sendEther()
+       await depositETH()
+       await withdrawETH()
     }
 }
 

@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IL1GatewayRouter",
-  "sourceName": "contracts/L1/gateways/IL1GatewayRouter.sol",
+  "sourceName": "contracts/l1/gateways/IL1GatewayRouter.sol",
   "abi": [
     {
       "anonymous": false,

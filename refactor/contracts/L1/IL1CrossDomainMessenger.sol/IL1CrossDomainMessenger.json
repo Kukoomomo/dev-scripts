@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IL1CrossDomainMessenger",
-  "sourceName": "contracts/L1/IL1CrossDomainMessenger.sol",
+  "sourceName": "contracts/l1/IL1CrossDomainMessenger.sol",
   "abi": [
     {
       "inputs": [],

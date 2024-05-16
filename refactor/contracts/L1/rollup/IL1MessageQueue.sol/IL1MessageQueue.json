@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IL1MessageQueue",
-  "sourceName": "contracts/L1/rollup/IL1MessageQueue.sol",
+  "sourceName": "contracts/l1/rollup/IL1MessageQueue.sol",
   "abi": [
     {
       "inputs": [],

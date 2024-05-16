@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IL1ERC721Gateway",
-  "sourceName": "contracts/L1/gateways/IL1ERC721Gateway.sol",
+  "sourceName": "contracts/l1/gateways/IL1ERC721Gateway.sol",
   "abi": [
     {
       "anonymous": false,

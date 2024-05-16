@@ -5,7 +5,8 @@ const {
     waitRollupSuccess,
     waitBatchFinalize,
     waitSyncSuccess,
-    provenAndRelayByHash
+    provenAndRelayByHash,
+    addToTokenList
 } = require('./utils')
 
 // config
@@ -134,7 +135,7 @@ const setup = async () => {
     const l2TokenAddr = await l1gr.getL2ERC20Address(l1token.address)
     l2token = ERC20Factory.attach(l2TokenAddr).connect(l2Signer)
     console.log(`L1 Token ${l1token.address} , L2 Token ${l2TokenAddr}`)
-
+    await addToTokenList(l1token.address, l2TokenAddr)
     await depositEther()
     await reportBalances()
 }
@@ -227,8 +228,10 @@ const withdrawERC20 = async () => {
 const main = async () => {
     await sendEther()
     await setup()
-    await depositERC20()
-    await withdrawERC20()
+    for (let i = 0; i < 100; i++) {
+        await depositERC20()
+        await withdrawERC20()
+    }
 }
 
 main().then(() => process.exit(0))

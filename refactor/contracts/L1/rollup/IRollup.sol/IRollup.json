@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IRollup",
-  "sourceName": "contracts/L1/rollup/IRollup.sol",
+  "sourceName": "contracts/l1/rollup/IRollup.sol",
   "abi": [
     {
       "inputs": [],
@@ -46,12 +46,6 @@
           "indexed": true,
           "internalType": "address",
           "name": "challenger",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "challengerReceiveAddress",
           "type": "address"
         },
         {
@@ -229,20 +223,13 @@
       "type": "event"
     },
     {
-      "inputs": [],
-      "name": "FINALIZATION_PERIOD_SECONDS",
-      "outputs": [
+      "inputs": [
         {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
         }
       ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "claimReward",
       "outputs": [],
       "stateMutability": "nonpayable",
@@ -286,48 +273,33 @@
               "internalType": "bytes32",
               "name": "withdrawalRoot",
               "type": "bytes32"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "version",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256[]",
-                  "name": "signers",
-                  "type": "uint256[]"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "signature",
-                  "type": "bytes"
-                }
-              ],
-              "internalType": "struct IRollup.BatchSignature",
-              "name": "signature",
-              "type": "tuple"
             }
           ],
-          "internalType": "struct IRollup.BatchData",
-          "name": "batchData",
+          "internalType": "struct IRollup.BatchDataInput",
+          "name": "batchDataInput",
           "type": "tuple"
         },
         {
-          "internalType": "uint256",
-          "name": "version",
-          "type": "uint256"
-        },
-        {
-          "internalType": "address[]",
-          "name": "sequencers",
-          "type": "address[]"
-        },
-        {
-          "internalType": "bytes",
-          "name": "signature",
-          "type": "bytes"
+          "components": [
+            {
+              "internalType": "bytes",
+              "name": "signedSequencers",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "sequencerSets",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "signature",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct IRollup.BatchSignatureInput",
+          "name": "batchSignatureInput",
+          "type": "tuple"
         }
       ],
       "name": "commitBatch",
@@ -349,6 +321,19 @@
           "internalType": "bytes32",
           "name": "",
           "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "finalizationPeriodSeconds",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",

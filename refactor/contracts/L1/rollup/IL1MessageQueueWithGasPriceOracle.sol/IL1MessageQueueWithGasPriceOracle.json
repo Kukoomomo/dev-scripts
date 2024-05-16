@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IL1MessageQueueWithGasPriceOracle",
-  "sourceName": "contracts/L1/rollup/IL1MessageQueueWithGasPriceOracle.sol",
+  "sourceName": "contracts/l1/rollup/IL1MessageQueueWithGasPriceOracle.sol",
   "abi": [
     {
       "anonymous": false,
