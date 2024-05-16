@@ -7,7 +7,7 @@ const {
     waitSyncSuccess,
     provenAndRelayByHash,
     addToTokenList
-} = require('./utils')
+} = require('../utils')
 
 // config
 const l1Url = `http://localhost:9545`
