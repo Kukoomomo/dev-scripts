@@ -81,12 +81,12 @@ const setup = async () => {
     ourAddr = l1Signer.address
 
     const L1SGArtifacts = require("../contracts/l1/gateways/L1StandardERC20Gateway.sol/L1StandardERC20Gateway.json")
-    const L1GRArtifacts = require("../contracts/L1/gateways/L1GatewayRouter.sol/L1GatewayRouter.json")
-    const L1CDMArtifacts = require("../contracts/L1/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json")
-    const L2GRArtifacts = require("../contracts/L2/gateways/L2GatewayRouter.sol/L2GatewayRouter.json")
-    const L2CDMArtifacts = require("../contracts/L2/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json")
-    const RollupArtifacts = require("../contracts/L1/rollup/Rollup.sol/Rollup.json")
-    const L2MPArtifacts = require("../contracts/L2/system/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json")
+    const L1GRArtifacts = require("../contracts/l1/gateways/L1GatewayRouter.sol/L1GatewayRouter.json")
+    const L1CDMArtifacts = require("../contracts/l1/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json")
+    const L2GRArtifacts = require("../contracts/l2/gateways/L2GatewayRouter.sol/L2GatewayRouter.json")
+    const L2CDMArtifacts = require("../contracts/l2/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json")
+    const RollupArtifacts = require("../contracts/l1/rollup/Rollup.sol/Rollup.json")
+    const L2MPArtifacts = require("../contracts/l2/system/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json")
 
     const ERC20Artifacts = require("../contracts/libraries/token/MockERC20.sol/MockERC20.json")
 
