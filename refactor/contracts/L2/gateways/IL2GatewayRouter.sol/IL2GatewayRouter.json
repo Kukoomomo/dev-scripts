@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IL2GatewayRouter",
-  "sourceName": "contracts/L2/gateways/IL2GatewayRouter.sol",
+  "sourceName": "contracts/l2/gateways/IL2GatewayRouter.sol",
   "abi": [
     {
       "anonymous": false,
@@ -296,6 +296,25 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "_token",
+          "type": "address"
+        }
+      ],
+      "name": "getERC20Gateway",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "l2Token",
           "type": "address"
         }
@@ -328,6 +347,35 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "requestERC20",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

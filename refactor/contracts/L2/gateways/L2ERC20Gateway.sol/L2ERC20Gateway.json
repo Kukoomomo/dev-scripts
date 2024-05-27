@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "L2ERC20Gateway",
-  "sourceName": "contracts/L2/gateways/L2ERC20Gateway.sol",
+  "sourceName": "contracts/l2/gateways/L2ERC20Gateway.sol",
   "abi": [
     {
       "anonymous": false,

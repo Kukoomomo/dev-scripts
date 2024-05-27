@@ -75,7 +75,6 @@ const depositMsgByHash = async (l1RpcProvider, hash, l1cdm) => {
     const receipt = await l1RpcProvider.getTransactionReceipt(hash)
     const msgs = receipt.logs
         .filter((log) => {
-
             // Only look at logs emitted by the messenger address
             return log.address.toLocaleLowerCase() === l1cdm.address.toLocaleLowerCase()
         })
