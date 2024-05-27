@@ -33,9 +33,9 @@ const L1ProxyAdminAddr = getAddressByName('Impl__ProxyAdmin')
 const L2ProxyAdminAddr = '0x530000000000000000000000000000000000000B'
 const L2MorphAddr = '0x5300000000000000000000000000000000000013'
 
-const L1ERC20Addr = '0xb3085c171FdBf40fDab8Ad83A8A5d045DC4c8c1d'
-const L2ReverseCustomGatewayAddr = '0x1DAF1C4e84BE0694d045DEb88b7200e5AB246728'
-const L1ReverseCustomGatewayAddr = '0x20bAeA72d91c56f31F18BfCC80dF58fe88365039'
+const L1ERC20Addr = ''
+const L2ReverseCustomGatewayAddr = ''
+const L1ReverseCustomGatewayAddr = ''
 
 // params
 const oneToken = BigInt(1e18)
