@@ -182,7 +182,7 @@ const depositETH = async () => {
 }
 
 const lockERC20 = async () => {
-    console.log("Deposit ERC20")
+    console.log("Lock ERC20")
     await ERC20Mint()
     await reportBalances()
     const start = new Date()
