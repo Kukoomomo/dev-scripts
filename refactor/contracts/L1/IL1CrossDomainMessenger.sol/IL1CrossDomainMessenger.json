@@ -97,6 +97,25 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldRollup",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newRollup",
+          "type": "address"
+        }
+      ],
+      "name": "UpdateRollup",
+      "type": "event"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",

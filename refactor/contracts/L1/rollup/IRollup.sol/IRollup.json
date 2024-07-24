@@ -13,9 +13,9 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint64",
+          "internalType": "uint256",
           "name": "batchIndex",
-          "type": "uint64"
+          "type": "uint256"
         },
         {
           "indexed": true,
@@ -282,9 +282,9 @@
         {
           "components": [
             {
-              "internalType": "bytes",
-              "name": "signedSequencers",
-              "type": "bytes"
+              "internalType": "uint256",
+              "name": "signedSequencersBitmap",
+              "type": "uint256"
             },
             {
               "internalType": "bytes",

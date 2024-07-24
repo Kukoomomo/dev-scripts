@@ -196,7 +196,7 @@ const waitRollupSuccess = async (l2RpcProvider, withdrawTxHash, l2cdm, rollup) =
     let totalTimeMs = 0
     while (totalTimeMs < Infinity) {
         const commitIndex = await rollup.lastCommittedBatchIndex()
-        const batch = await rollup.batchBaseStore(commitIndex)
+        const batch = await rollup.batchDataStore(commitIndex)
         const commitNum = batch.blockNumber
         if (commitNum >= withdrawNum) {
             console.log(`time ${Date.now()} rollup succeed! commit number ${commitNum} , withdraw number ${withdrawNum}`)
@@ -216,7 +216,7 @@ const waitBatchFinalize = async (l2RpcProvider, withdrawTxHash, l2cdm, rollup) =
     let totalTimeMs = 0
     while (totalTimeMs < Infinity) {
         const fbi = await rollup.lastFinalizedBatchIndex()
-        const batchStorage = await rollup.batchBaseStore(fbi)
+        const batchStorage = await rollup.batchDataStore(fbi)
         const finalizeNum = batchStorage.blockNumber.toString()
         if (finalizeNum >= withdrawNum) {
             console.log(`time ${Date.now()} batch finalized succeed! finalize number ${finalizeNum} , withdraw number ${withdrawNum}`)
